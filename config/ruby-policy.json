@@ -1,0 +1,7 @@
+{
+  "readerLevel": "general",
+  "rubyOnProperNoun": true,
+  "rubyOnFirstOccurrenceOnly": false,
+  "confidenceThreshold": 0.75,
+  "jukugoEnabled": false
+}

@@ -1,0 +1,13 @@
+{
+  "name": "おすわりエディタ",
+  "short_name": "おすわり",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fafaf7",
+  "theme_color": "#5b6cff",
+  "icons": [
+    { "src": "/icon/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

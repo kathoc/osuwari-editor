@@ -1,0 +1,97 @@
+[
+  {
+    "surface": "今日",
+    "candidates": [
+      {
+        "ruby": "こんにち",
+        "reason": "文語『今日』。『今日の社会』など抽象名詞修飾",
+        "conditions": [
+          { "inWord": "今日の社会" },
+          { "inWord": "今日的" },
+          { "inWord": "今日性" }
+        ]
+      },
+      {
+        "ruby": "きょう",
+        "reason": "口語の『今日』。日付副詞・時間表現の文脈",
+        "conditions": [
+          { "next": ["の"], "nextPos": "助詞" },
+          { "next": ["は", "も", "から", "まで", "中"] },
+          { "prevPos": "記号" }
+        ]
+      }
+    ],
+    "defaultRuby": "きょう",
+    "defaultReason": "default to 口語『きょう』 when no specific rule fires"
+  },
+  {
+    "surface": "人気",
+    "candidates": [
+      {
+        "ruby": "ひとけ",
+        "reason": "『人気のない』『人気がない』。人の気配の意",
+        "conditions": [
+          { "inWord": "人気のない" },
+          { "inWord": "人気がない" }
+        ]
+      },
+      {
+        "ruby": "にんき",
+        "reason": "『人気がある』『人気のXX』『人気者』など",
+        "conditions": [
+          { "next": ["が", "を", "は", "者", "店", "商品"] }
+        ]
+      }
+    ],
+    "defaultRuby": "にんき",
+    "defaultReason": "default to にんき"
+  },
+  {
+    "surface": "生物",
+    "candidates": [
+      {
+        "ruby": "なまもの",
+        "reason": "食品の生物。傷む・腐る等が周辺",
+        "conditions": [
+          { "inWord": "生物が傷" },
+          { "inWord": "生物は傷" },
+          { "inWord": "生物の保存" }
+        ]
+      },
+      {
+        "ruby": "せいぶつ",
+        "reason": "生き物・生物学の意",
+        "conditions": [
+          { "next": ["を", "学", "的"] },
+          { "inWord": "生物を観察" },
+          { "inWord": "生物学" }
+        ]
+      }
+    ],
+    "defaultRuby": "せいぶつ",
+    "defaultReason": "default to せいぶつ"
+  },
+  {
+    "surface": "一日",
+    "candidates": [
+      {
+        "ruby": "ついたち",
+        "reason": "日付の『一日』(月初)。前に月名が来る",
+        "conditions": [
+          { "prev": ["月", "一月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月"] },
+          { "inWord": "月一日" }
+        ],
+        "rubyMode": "group"
+      },
+      {
+        "ruby": "いちにち",
+        "reason": "『一日中』『一日かけて』など期間表現",
+        "conditions": [
+          { "next": ["中", "かけて", "が", "は", "を"] }
+        ]
+      }
+    ],
+    "defaultRuby": "いちにち",
+    "defaultReason": "default to いちにち"
+  }
+]

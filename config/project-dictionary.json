@@ -1,0 +1,9 @@
+[
+  { "surface": "村人ゾンビ", "reading": "むらびとぞんび", "pos": "名詞", "scope": "project", "priority": 10 },
+  { "surface": "村人", "reading": "むらびと", "pos": "名詞", "scope": "project", "priority": 5 },
+  { "surface": "マイクラ", "reading": "まいくら", "pos": "名詞", "scope": "project", "priority": 5 },
+  { "surface": "日照センサー", "reading": "にっしょうせんさー", "pos": "名詞", "scope": "project", "priority": 8 },
+  { "surface": "日照", "reading": "にっしょう", "pos": "名詞", "scope": "project", "priority": 5 },
+  { "surface": "司書", "reading": "ししょ", "pos": "名詞", "scope": "project", "priority": 5 },
+  { "surface": "行商人", "reading": "ぎょうしょうにん", "pos": "名詞", "scope": "project", "priority": 5 }
+]
