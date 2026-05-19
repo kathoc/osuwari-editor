@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { RubyEngine } from "../index.js";
 import { MockAnalyzer } from "../morphology/MockAnalyzer.js";
 import { loadConfig } from "../dictionaries.js";
+import type { RubySpan } from "../types.js";
 
 async function process(text: string) {
   const engine = new RubyEngine({
@@ -12,7 +13,7 @@ async function process(text: string) {
   return engine.processParagraph(text, { paragraphId: "t" });
 }
 
-function findSpan(spans: { base: string; ruby: string }[], base: string) {
+function findSpan(spans: RubySpan[], base: string) {
   return spans.find((s) => s.base === base);
 }
 

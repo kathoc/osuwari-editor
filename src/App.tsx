@@ -3,6 +3,7 @@ import { Editor, type EditorHandle } from "./components/Editor";
 import { StatusBar } from "./components/StatusBar";
 import { DocTabs } from "./components/DocTabs";
 import { MemoNotebook, type AppliedSentence } from "./components/MemoNotebook";
+import { MemoDraftPanel } from "./components/MemoDraftPanel";
 import { RewritePanel } from "./components/RewritePanel";
 import { RubyPanel } from "./components/RubyPanel";
 import { SnapshotsPanel } from "./components/SnapshotsPanel";
@@ -22,19 +23,23 @@ import {
   listDocs,
   listProjects,
   loadDocById,
+  loadMemoDrafts,
   loadProfile,
   newId,
   saveDoc,
+  saveMemoDrafts,
   saveProfile,
   updateProject,
 } from "./lib/storage";
 import { getAdapter } from "./lib/ai/registry";
+import { expandMemoDraftViaAdapter } from "./lib/ai/memoDraft";
 import { effectiveSettings } from "./lib/settings";
 import type {
   DocumentSettings,
   DocumentState,
   DocumentSummary,
   Highlight,
+  MemoDraftProposal,
   PendingProposal,
   Profile,
   Project,
@@ -109,6 +114,7 @@ export default function App() {
   const [flashRange, setFlashRange] = useState<{ start: number; end: number; token: number } | null>(null);
   const [aiStatus, setAiStatus] = useState<{ ok: boolean; label: string }>({ ok: true, label: "mock" });
   const [pending, setPending] = useState<PendingProposal[]>([]);
+  const [memoDrafts, setMemoDrafts] = useState<MemoDraftProposal[]>([]);
   const [aiPrefill, setAiPrefill] = useState<{ text: string; token: number } | null>(null);
   const editorApi = useRef<EditorHandle>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -117,6 +123,12 @@ export default function App() {
   );
 
   const adapter = useMemo(() => getAdapter(profile), [profile]);
+  const adapterRef = useRef(adapter);
+  useEffect(() => { adapterRef.current = adapter; }, [adapter]);
+  const docRef = useRef(doc);
+  useEffect(() => { docRef.current = doc; }, [doc]);
+  const boardRef = useRef(board);
+  // boardRef は board state 宣言の後で実体が作られるため、後段の useEffect で同期する。
 
   // AI 接続チェック
   useEffect(() => {
@@ -276,6 +288,28 @@ export default function App() {
     if (!loaded) return;
     saveBoard(doc.id, board);
   }, [board, doc.id, loaded]);
+
+  useEffect(() => { boardRef.current = board; }, [board]);
+
+  // ドキュメント切替時に助手草稿をロード（in-flight はリクエスト世代でガード）
+  const memoDraftDocRef = useRef<string>(doc.id);
+  useEffect(() => {
+    let cancelled = false;
+    memoDraftDocRef.current = doc.id;
+    (async () => {
+      const list = await loadMemoDrafts(doc.id);
+      if (cancelled) return;
+      // 前回 in-flight だった pending はリロード後に復元しない（再生成ボタンから明示する）
+      const normalized = list.map((d) => (d.status === "pending" ? { ...d, status: "failed" as const, errorMessage: "中断" } : d));
+      setMemoDrafts(normalized);
+    })();
+    return () => { cancelled = true; };
+  }, [doc.id]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    void saveMemoDrafts(doc.id, memoDrafts);
+  }, [memoDrafts, doc.id, loaded]);
 
   // 改行で1行確定 → AI 経由で原稿生成・反映
   async function commitMemoLine(line: string) {
@@ -541,6 +575,113 @@ export default function App() {
     } finally {
       setMemoBusy(false);
     }
+  }
+
+  // --- メモ駆動オート草稿（助手草稿）---------------------------------------
+  function recentMemosFromBoard(): string[] {
+    const text = boardRef.current?.text || "";
+    return text
+      .split(/\n+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0)
+      .slice(-5);
+  }
+
+  async function runMemoDraft(id: string, memo: string) {
+    const docIdAtStart = docRef.current.id;
+    const mode = profile.memoDraftMode || "normal";
+    try {
+      const result = await expandMemoDraftViaAdapter(adapterRef.current, {
+        memo,
+        content: (docRef.current.content || "").slice(-1500),
+        recentMemos: recentMemosFromBoard(),
+        mode,
+      });
+      if (memoDraftDocRef.current !== docIdAtStart) return; // doc 切替で破棄
+      setMemoDrafts((xs) =>
+        xs.map((d) =>
+          d.id === id
+            ? {
+                ...d,
+                status: "ready",
+                draftText: result.draftText,
+                cautionNotes: result.cautionNotes,
+                updatedAt: Date.now(),
+              }
+            : d
+        )
+      );
+    } catch (e) {
+      if (memoDraftDocRef.current !== docIdAtStart) return;
+      setMemoDrafts((xs) =>
+        xs.map((d) =>
+          d.id === id
+            ? {
+                ...d,
+                status: "failed",
+                errorMessage: e instanceof Error ? e.message : String(e),
+                updatedAt: Date.now(),
+              }
+            : d
+        )
+      );
+    }
+  }
+
+  function handleMemoDraft(line: string) {
+    const memo = line.trim();
+    if (!memo) return;
+    const id = newId();
+    const now = Date.now();
+    const draft: MemoDraftProposal = {
+      id,
+      memo,
+      draftText: "",
+      cautionNotes: [],
+      status: "pending",
+      mode: profile.memoDraftMode || "normal",
+      createdAt: now,
+      updatedAt: now,
+    };
+    setMemoDrafts((xs) => xs.concat([draft]));
+    void runMemoDraft(id, memo);
+  }
+
+  function applyMemoDraft(id: string) {
+    const target = memoDrafts.find((d) => d.id === id);
+    if (!target || target.status !== "ready" || !target.draftText) return;
+    const insertAt = doc.content.length;
+    const prefix = doc.content.length === 0 || doc.content.endsWith("\n") ? "" : "\n\n";
+    const inserted = prefix + target.draftText;
+    setDoc((d) => ({ ...d, content: d.content + inserted, cursor: insertAt + inserted.length }));
+    appendOp({
+      id: newId(),
+      documentId: doc.id,
+      ts: Date.now(),
+      type: "insert",
+      before: { start: insertAt, end: insertAt, text: "" },
+      after: { start: insertAt, end: insertAt + inserted.length, text: inserted },
+      source: "ai",
+    });
+    setMemoDrafts((xs) => xs.map((d) => (d.id === id ? { ...d, status: "applied", updatedAt: Date.now() } : d)));
+    setFlashRange({ start: insertAt + prefix.length, end: insertAt + inserted.length, token: Date.now() });
+  }
+
+  function rejectMemoDraft(id: string) {
+    setMemoDrafts((xs) => xs.filter((d) => d.id !== id));
+  }
+
+  function retryMemoDraft(id: string) {
+    const target = memoDrafts.find((d) => d.id === id);
+    if (!target) return;
+    setMemoDrafts((xs) =>
+      xs.map((d) =>
+        d.id === id
+          ? { ...d, status: "pending", draftText: "", cautionNotes: [], errorMessage: undefined, updatedAt: Date.now() }
+          : d
+      )
+    );
+    void runMemoDraft(id, target.memo);
   }
 
   // メモタブの内容を AI タブのプロンプトに転記して送る（実行はユーザー操作）
@@ -1033,23 +1174,39 @@ export default function App() {
               </button>
             </div>
             {sideTab === "memo" ? (
-              <MemoNotebook
-                text={board.text}
-                applied={board.applied}
-                busy={memoBusy}
-                onChange={updateMemoText}
-                onCommitLine={(line) => {
-                  if (profile.memoSuggestEnabled && doc.content.trim().length > 0) {
-                    void commitMemoLineAsSuggestion(line);
-                  } else {
-                    void commitMemoLine(line);
-                  }
-                }}
-                onClickApplied={clickAppliedMark}
-                onCompileAll={compileMemos}
-                onSendToAI={() => sendMemoToAI(board.text)}
-                suggestMode={!!profile.memoSuggestEnabled && doc.content.trim().length > 0}
-              />
+              <div className="memo-tab-stack">
+                <MemoNotebook
+                  text={board.text}
+                  applied={board.applied}
+                  busy={memoBusy}
+                  onChange={updateMemoText}
+                  onCommitLine={(line) => {
+                    // 草稿候補（助手草稿）は本文へ自動反映せず、別カードとして並走させる
+                    if (profile.memoDraftEnabled) {
+                      handleMemoDraft(line);
+                      // 既存の本文反映系は呼ばない（手書き優先・自動執筆と競合させない）
+                      return;
+                    }
+                    if (profile.memoSuggestEnabled && doc.content.trim().length > 0) {
+                      void commitMemoLineAsSuggestion(line);
+                    } else {
+                      void commitMemoLine(line);
+                    }
+                  }}
+                  onClickApplied={clickAppliedMark}
+                  onCompileAll={compileMemos}
+                  onSendToAI={() => sendMemoToAI(board.text)}
+                  suggestMode={!!profile.memoSuggestEnabled && doc.content.trim().length > 0}
+                />
+                {profile.memoDraftEnabled && (
+                  <MemoDraftPanel
+                    drafts={memoDrafts}
+                    onApply={applyMemoDraft}
+                    onReject={rejectMemoDraft}
+                    onRetry={retryMemoDraft}
+                  />
+                )}
+              </div>
             ) : sideTab === "ai" ? (
               <RewritePanel
                 adapter={adapter}
@@ -1097,6 +1254,8 @@ export default function App() {
                 onCreateProject={createProj}
                 onUpdateProject={updateProj}
                 onDeleteProject={deleteProj}
+                profile={profile}
+                onChangeProfile={setProfile}
               />
             )}
           </aside>

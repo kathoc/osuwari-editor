@@ -41,9 +41,9 @@ export class RubyEngine {
   private config: RubyEngineConfig;
   private cache: ParagraphCache;
   private manualOverrides?: ManualOverrideStore;
-  private userDict: Map<string, ReturnType<typeof first>>;
-  private projectDict: Map<string, ReturnType<typeof first>>;
-  private ambiguous: Map<string, ReturnType<typeof firstAmb>>;
+  private userDict: Map<string, import("./types.js").UserDictEntry>;
+  private projectDict: Map<string, import("./types.js").UserDictEntry>;
+  private ambiguous: Map<string, import("./types.js").AmbiguousReadingRule>;
   private contextWindow: number;
 
   constructor(opts: RubyEngineOptions = {}) {
@@ -51,9 +51,9 @@ export class RubyEngine {
     this.config = opts.config ?? loadConfig(opts.loadConfigOptions);
     this.cache = opts.cache ?? new MemoryParagraphCache();
     this.manualOverrides = opts.manualOverrides;
-    this.userDict = indexDictionary(this.config.userDictionary) as any;
-    this.projectDict = indexDictionary(this.config.projectDictionary) as any;
-    this.ambiguous = indexAmbiguous(this.config.ambiguousReadings) as any;
+    this.userDict = indexDictionary(this.config.userDictionary);
+    this.projectDict = indexDictionary(this.config.projectDictionary);
+    this.ambiguous = indexAmbiguous(this.config.ambiguousReadings);
     this.contextWindow = opts.contextWindow ?? 30;
   }
 
@@ -178,14 +178,6 @@ export class RubyEngine {
     }
     return out;
   }
-}
-
-// Helper type holders for the loose `as any` casts above — kept private.
-function first<T>(x: T): T {
-  return x;
-}
-function firstAmb<T>(x: T): T {
-  return x;
 }
 
 interface ExpandInputs {

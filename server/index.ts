@@ -448,6 +448,20 @@ function safeParse(s: string) {
   try { return JSON.parse(s); } catch { return null; }
 }
 
-app.listen(PORT, () => {
-  console.log(`[osuwari-api] listening on http://localhost:${PORT}  db=${DB_PATH}`);
+// --- Static frontend (Electron 本番ビルド用) -------------------------------
+// OSUWARI_STATIC_DIR が指定されていれば dist/ を配信する。
+const STATIC_DIR = process.env.OSUWARI_STATIC_DIR || "";
+if (STATIC_DIR && fs.existsSync(STATIC_DIR)) {
+  app.use(express.static(STATIC_DIR));
+  app.get(/^\/(?!api\/).*/, (_req, res) => {
+    res.sendFile(path.join(STATIC_DIR, "index.html"));
+  });
+}
+
+const server = app.listen(PORT, () => {
+  const addr = server.address();
+  const actualPort = typeof addr === "object" && addr ? addr.port : PORT;
+  console.log(`[osuwari-api] listening on http://localhost:${actualPort}  db=${DB_PATH}`);
+  // Electron 親プロセスへ実ポートを通知
+  if (process.send) process.send({ type: "listening", port: actualPort });
 });

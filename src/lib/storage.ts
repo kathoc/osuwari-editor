@@ -1,5 +1,5 @@
 // Node/SQLite を一次ストレージ、localStorage はフォールバックとキャッシュ。
-import type { DocumentState, DocumentSummary, EditOp, Profile, Project, ProjectSummary } from "./types";
+import type { DocumentState, DocumentSummary, EditOp, MemoDraftProposal, Profile, Project, ProjectSummary } from "./types";
 
 const KEY_DOC_PREFIX = "osuwari.doc.v2:";
 const KEY_DOCS_INDEX = "osuwari.docs.v2";
@@ -210,6 +210,29 @@ export async function loadProfile(): Promise<Profile | null> {
       return null;
     }
   }
+}
+
+// --- Memo drafts (memo-driven assistant drafts) ------------------------------
+const KEY_MEMO_DRAFTS_PREFIX = "osuwari.memoDrafts.v1:";
+const MEMO_DRAFTS_MAX = 30;
+
+export async function loadMemoDrafts(docId: string): Promise<MemoDraftProposal[]> {
+  try {
+    const raw = localStorage.getItem(KEY_MEMO_DRAFTS_PREFIX + docId);
+    if (!raw) return [];
+    const arr = JSON.parse(raw) as MemoDraftProposal[];
+    if (!Array.isArray(arr)) return [];
+    return arr;
+  } catch {
+    return [];
+  }
+}
+
+export async function saveMemoDrafts(docId: string, drafts: MemoDraftProposal[]): Promise<void> {
+  try {
+    const trimmed = drafts.length > MEMO_DRAFTS_MAX ? drafts.slice(drafts.length - MEMO_DRAFTS_MAX) : drafts;
+    localStorage.setItem(KEY_MEMO_DRAFTS_PREFIX + docId, JSON.stringify(trimmed));
+  } catch {}
 }
 
 export async function saveProfile(p: Profile): Promise<void> {

@@ -1,5 +1,6 @@
 import { applyMemoToDoc, type ApplyResult } from "../applyMemo";
 import type { AIAdapter } from "./types";
+import { buildMemoDraftPrompt, parseMemoDraftJson } from "./memoDraft";
 
 export interface OllamaConfig {
   baseUrl?: string;
@@ -104,6 +105,12 @@ export function makeOllamaAdapter(cfg: OllamaConfig): AIAdapter {
       } catch {
         return [];
       }
+    },
+
+    async expandMemoDraft(req) {
+      const prompt = buildMemoDraftPrompt(req);
+      const raw = await generate(prompt, cfg);
+      return parseMemoDraftJson(raw);
     },
 
     async chat({ instruction, context }) {

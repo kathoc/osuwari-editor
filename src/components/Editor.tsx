@@ -159,9 +159,16 @@ export const Editor = forwardRef<EditorHandle, Props>(function Editor(
     if (!el) return;
     const start = Math.max(0, Math.min(flashRange.start, value.length));
     const end = Math.max(start, Math.min(flashRange.end, value.length));
+    // フォーカスを奪わない: メモ欄など別の入力要素にフォーカスがある場合は、
+    // エディタへフォーカスを移さず、選択は shadowSel オーバーレイの表示に任せる。
+    const active = typeof document !== "undefined" ? document.activeElement : null;
+    const focusIsElsewhere =
+      active && active !== el && (active.tagName === "TEXTAREA" || active.tagName === "INPUT" || (active as HTMLElement).isContentEditable);
     try {
-      el.focus({ preventScroll: true });
-      el.setSelectionRange(start, end);
+      if (!focusIsElsewhere) {
+        el.focus({ preventScroll: true });
+        el.setSelectionRange(start, end);
+      }
     } catch {}
     const lh = fontSize * lineHeight;
     const linesBefore = (value.slice(0, start).match(/\n/g) || []).length;

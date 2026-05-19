@@ -16,4 +16,23 @@ export interface AIAdapter {
   }): Promise<string>;
   // 1センテンス分のルビ生成。漢字語と読みのペアを返す。未実装なら空配列。
   generateRuby?(args: { sentence: string }): Promise<Array<{ base: string; kana: string }>>;
+  // メモから荒い草稿候補を作る。未実装なら共通フォールバックを使う（memoDraft.ts）。
+  expandMemoDraft?(args: MemoDraftRequest): Promise<MemoDraftResult>;
+}
+
+export interface MemoDraftRequest {
+  memo: string;
+  content: string;
+  recentMemos?: string[];
+  mode?: "safe" | "normal" | "wild";
+  target?: {
+    maxChars?: number;
+    audience?: string;
+    tone?: string;
+  };
+}
+
+export interface MemoDraftResult {
+  draftText: string;
+  cautionNotes: string[];
 }

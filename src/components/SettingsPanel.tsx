@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { DocumentSettings, EffectiveSettings, Project, ProjectSummary, StyleRule } from "../lib/types";
+import type { DocumentSettings, EffectiveSettings, Profile, Project, ProjectSummary, StyleRule } from "../lib/types";
 import { STYLE_RULE_LABEL } from "../lib/settings";
 
 interface Props {
@@ -18,6 +18,9 @@ interface Props {
   onCreateProject: (name: string) => Promise<Project | null>;
   onUpdateProject: (id: string, patch: Partial<Project>) => Promise<void>;
   onDeleteProject: (id: string) => Promise<void>;
+  // 助手草稿（メモ駆動オート草稿）の設定
+  profile: Profile;
+  onChangeProfile: (next: Profile) => void;
 }
 
 const STYLE_OPTIONS: { value: StyleRule; label: string }[] = [
@@ -41,6 +44,8 @@ export function SettingsPanel(props: Props) {
     onCreateProject,
     onUpdateProject,
     onDeleteProject,
+    profile,
+    onChangeProfile,
   } = props;
 
   const [projName, setProjName] = useState(currentProject?.name || "");
@@ -177,6 +182,35 @@ export function SettingsPanel(props: Props) {
             </div>
           </>
         )}
+      </div>
+
+      <div className="setpanel-section">
+        <div className="setpanel-head">助手草稿（メモから草稿）</div>
+        <label className="setpanel-row">
+          <span>メモから草稿候補を作る</span>
+          <select
+            value={profile.memoDraftEnabled ? "on" : "off"}
+            onChange={(e) => onChangeProfile({ ...profile, memoDraftEnabled: e.target.value === "on" })}
+          >
+            <option value="off">OFF</option>
+            <option value="on">ON</option>
+          </select>
+        </label>
+        <label className="setpanel-row">
+          <span>草稿の勢い</span>
+          <select
+            value={profile.memoDraftMode || "normal"}
+            onChange={(e) => onChangeProfile({ ...profile, memoDraftMode: e.target.value as "safe" | "normal" | "wild" })}
+            disabled={!profile.memoDraftEnabled}
+          >
+            <option value="safe">控えめ</option>
+            <option value="normal">標準</option>
+            <option value="wild">ふくらませる</option>
+          </select>
+        </label>
+        <div className="setpanel-subtle">
+          ONにすると、メモを改行確定するたびに、AIが荒い下書きカードを生成します。本文には自動反映されず、採用ボタンを押した時だけ末尾に追記されます。
+        </div>
       </div>
 
       <div className="setpanel-section">

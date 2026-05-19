@@ -7,6 +7,7 @@
 
 import { applyMemoToDoc, type ApplyResult } from "../applyMemo";
 import type { AIAdapter } from "./types";
+import { buildMemoDraftPrompt, parseMemoDraftJson } from "./memoDraft";
 
 declare global {
   interface Window {
@@ -114,6 +115,12 @@ export const chromeAdapter: AIAdapter = {
     } catch {
       return text;
     }
+  },
+
+  async expandMemoDraft(req) {
+    const p = buildMemoDraftPrompt(req);
+    const raw = await prompt(p);
+    return parseMemoDraftJson(raw);
   },
 
   async chat({ instruction, context }) {

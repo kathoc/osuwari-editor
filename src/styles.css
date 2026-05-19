@@ -1831,3 +1831,34 @@ body {
     padding-right: calc(12px + env(safe-area-inset-right));
   }
 }
+
+/* メモ駆動オート草稿（助手草稿） */
+.memo-tab-stack { display: flex; flex-direction: column; min-height: 0; gap: 8px; flex: 1; }
+.memo-tab-stack > .memoboard { flex: 1 1 auto; min-height: 0; }
+.memo-tab-stack > .mdraft { flex: 1 1 auto; min-height: 0; }
+
+.mdraft { display: flex; flex-direction: column; min-height: 0; border-top: 1px solid var(--border, #2a2a2a); padding-top: 8px; }
+.mdraft-head { display: flex; align-items: baseline; gap: 8px; padding: 0 8px 6px; font-weight: 600; }
+.mdraft-hint { font-size: 11px; opacity: 0.7; font-weight: normal; }
+.mdraft-empty { padding: 10px; opacity: 0.6; font-size: 12px; }
+.mdraft-list { display: flex; flex-direction: column; gap: 8px; padding: 4px 8px 12px; overflow-y: auto; }
+.mdraft-card { border: 1px solid var(--border, #2a2a2a); border-radius: 6px; padding: 8px; background: var(--panel, rgba(255,255,255,0.02)); display: flex; flex-direction: column; gap: 6px; }
+.mdraft-card.s-pending { opacity: 0.85; }
+.mdraft-card.s-failed { border-color: #aa5555; }
+.mdraft-card.s-applied { opacity: 0.6; }
+.mdraft-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 12px; }
+.mdraft-card-memo { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mdraft-card-status { font-size: 11px; opacity: 0.7; flex-shrink: 0; }
+.mdraft-body { font-size: 13px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+.mdraft-body.collapsed { max-height: 4.5em; overflow: hidden; mask-image: linear-gradient(to bottom, #000 60%, transparent 100%); }
+.mdraft-toggle { align-self: flex-start; background: transparent; border: 1px dashed var(--border, #2a2a2a); color: inherit; font-size: 11px; padding: 2px 8px; border-radius: 4px; cursor: pointer; }
+.mdraft-cautions { font-size: 11px; opacity: 0.85; border-top: 1px dashed var(--border, #2a2a2a); padding-top: 6px; }
+.mdraft-cautions-head { font-weight: 600; margin-bottom: 2px; }
+.mdraft-cautions ul { margin: 0; padding-left: 1.2em; }
+.mdraft-error { font-size: 12px; color: #d77; }
+.mdraft-thinking { display: flex; align-items: center; gap: 6px; padding: 4px 2px; }
+.mdraft-actions { display: flex; gap: 6px; }
+.mdraft-actions button { font-size: 12px; padding: 4px 10px; border-radius: 4px; cursor: pointer; }
+.mdraft-actions button:disabled { opacity: 0.4; cursor: not-allowed; }
+.mdraft-apply { background: #2d6cdf; color: #fff; border: 1px solid #2d6cdf; }
+.mdraft-reject, .mdraft-retry { background: transparent; border: 1px solid var(--border, #2a2a2a); color: inherit; }

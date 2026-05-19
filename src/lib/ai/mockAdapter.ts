@@ -33,6 +33,30 @@ export const mockAdapter: AIAdapter = {
     return out + "（mock）";
   },
 
+  async expandMemoDraft({ memo, mode }) {
+    await new Promise((r) => setTimeout(r, 220));
+    const m = mode || "normal";
+    const lead =
+      m === "safe"
+        ? `${memo}について、まずは分かっている範囲から短く整理してみます。`
+        : m === "wild"
+        ? `${memo}を、思い切って物語の入口のように描いてみます。`
+        : `${memo}について、若手ライターの下書きとして、ざっくり書き起こしてみます。`;
+    const body =
+      "全体像をなだらかに広げると、いくつかの要素が見えてきます。" +
+      "まずは表面の動きをなぞり、そのあとで仕組みに踏み込みます。" +
+      "細部はまだ仮置きで、データや出典は後で差し替える前提です。" +
+      "読み手が一気に置いていかれないよう、ひとつずつ言い換えながらつないでいきます。";
+    const tail = "（mock草稿。事実関係は要確認）";
+    return {
+      draftText: `${lead}${body}${tail}`,
+      cautionNotes: [
+        "固有名詞や数値は仮置き（mockのため要確認）",
+        "メモから補えていない前提条件があるかも",
+      ],
+    };
+  },
+
   async chat({ instruction, context }) {
     await new Promise((r) => setTimeout(r, 250));
     const head = context.slice(0, 60).replace(/\s+/g, " ");

@@ -29,6 +29,9 @@ export interface Profile {
   memoSuggestEnabled?: boolean;
   // メモ駆動オート執筆（実験）
   memoAutoWriteEnabled?: boolean;
+  // メモ駆動オート草稿（助手草稿）
+  memoDraftEnabled?: boolean;
+  memoDraftMode?: "safe" | "normal" | "wild";
 }
 
 export type StyleRule = "off" | "desu-masu" | "da-dearu" | "dayo-nanda";
@@ -148,6 +151,18 @@ export interface MemoLine {
     mode: "replace" | "append" | "insert";
     inserted: string;
   };
+}
+
+export interface MemoDraftProposal {
+  id: string;
+  memo: string;
+  draftText: string;
+  cautionNotes: string[];
+  status: "pending" | "ready" | "applied" | "rejected" | "failed";
+  mode?: "safe" | "normal" | "wild";
+  errorMessage?: string;
+  createdAt: number;
+  updatedAt: number;
 }
 
 export interface AIProposal {
