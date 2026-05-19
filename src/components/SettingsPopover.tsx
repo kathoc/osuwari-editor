@@ -71,6 +71,7 @@ export function SettingsPopover({ profile, onChange, aiStatus, onRecheckAI }: Pr
           <option value="mock">Mock</option>
           <option value="ollama">Ollama</option>
           <option value="chrome">Chrome (Gemini Nano)</option>
+          <option value="local-llm">ローカルAI(オンデバイス)</option>
         </select>
       </label>
       <label>

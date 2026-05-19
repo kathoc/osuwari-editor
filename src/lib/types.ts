@@ -7,7 +7,7 @@ export interface VirtualLayout {
 }
 
 export interface AISettings {
-  id: "mock" | "ollama" | "chrome";
+  id: "mock" | "ollama" | "chrome" | "local-llm";
   ollama?: {
     baseUrl?: string;
     model?: string;

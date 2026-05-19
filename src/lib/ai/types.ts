@@ -1,6 +1,6 @@
 import type { ApplyResult } from "../applyMemo";
 
-export type AIAdapterId = "mock" | "ollama" | "chrome";
+export type AIAdapterId = "mock" | "ollama" | "chrome" | "local-llm";
 
 export interface AIAdapter {
   id: AIAdapterId;

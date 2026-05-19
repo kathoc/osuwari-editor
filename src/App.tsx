@@ -33,6 +33,8 @@ import {
 } from "./lib/storage";
 import { getAdapter } from "./lib/ai/registry";
 import { expandMemoDraftViaAdapter } from "./lib/ai/memoDraft";
+import { getLocalLlmBridge, hasLocalLlmBridge } from "./lib/ai/localLlm";
+import { LocalLlmIntroDialog } from "./components/LocalLlmIntroDialog";
 import { effectiveSettings } from "./lib/settings";
 import type {
   DocumentSettings,
@@ -54,6 +56,7 @@ const FOCUS_KEY = "osuwari.focusMode";
 const CHAT_OPEN_KEY = "osuwari.chatOpen";
 const SIDE_TAB_KEY = "osuwari.sideTab";
 const MEMO_KEY_PREFIX = "osuwari.memoboard.v1:";
+const LOCAL_LLM_INTRO_DISMISSED_KEY = "osuwari.localLlmIntroDismissed";
 
 interface MemoBoard {
   text: string;
@@ -113,6 +116,8 @@ export default function App() {
   const [memoBusy, setMemoBusy] = useState(false);
   const [flashRange, setFlashRange] = useState<{ start: number; end: number; token: number } | null>(null);
   const [aiStatus, setAiStatus] = useState<{ ok: boolean; label: string }>({ ok: true, label: "mock" });
+  const [localLlmIntroOpen, setLocalLlmIntroOpen] = useState(false);
+  const [localLlmExpectedSize, setLocalLlmExpectedSize] = useState(0);
   const [pending, setPending] = useState<PendingProposal[]>([]);
   const [memoDrafts, setMemoDrafts] = useState<MemoDraftProposal[]>([]);
   const [aiPrefill, setAiPrefill] = useState<{ text: string; token: number } | null>(null);
@@ -210,6 +215,36 @@ export default function App() {
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // 起動時: ローカルAI(オンデバイス) の導入状況を判定
+  //  - 未導入 & イントロを未拒否 → ダウンロード案内ダイアログを開く
+  //  - 導入済み & ユーザーが AI プロバイダを未選択 → 自動で local-llm を選択
+  //    (ユーザーが他のプロバイダを選んでいたら触らない)
+  useEffect(() => {
+    if (!loaded) return;
+    if (!hasLocalLlmBridge()) return; // Electron以外(ブラウザdev)では何もしない
+    let cancelled = false;
+    (async () => {
+      const bridge = getLocalLlmBridge();
+      if (!bridge) return;
+      try {
+        const status = await bridge.status();
+        if (cancelled) return;
+        setLocalLlmExpectedSize(status.expectedSizeBytes || 0);
+        if (status.installed) {
+          // 自動選択: profile.ai が未設定なら local-llm を選択
+          setProfile((p) => (p.ai ? p : { ...p, ai: { id: "local-llm" } }));
+          return;
+        }
+        const dismissed = localStorage.getItem(LOCAL_LLM_INTRO_DISMISSED_KEY);
+        if (dismissed === "never" || dismissed === "later") return;
+        setLocalLlmIntroOpen(true);
+      } catch {}
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [loaded]);
 
   // ドキュメントの projectId が変わったら currentProject をロード
   useEffect(() => {
@@ -1044,6 +1079,16 @@ export default function App() {
   // モバイル時はチャットを default で閉じる（ユーザー設定が無ければ）
   const effectiveChatOpen = isMobile ? chatOpen : true;
 
+  function handleLocalLlmIntroClose(action: "downloaded" | "later" | "never") {
+    setLocalLlmIntroOpen(false);
+    if (action === "never") localStorage.setItem(LOCAL_LLM_INTRO_DISMISSED_KEY, "never");
+    else if (action === "later") localStorage.setItem(LOCAL_LLM_INTRO_DISMISSED_KEY, "later");
+    if (action === "downloaded") {
+      // 導入完了後、ユーザーが他のプロバイダを未選択なら自動で local-llm に切替
+      setProfile((p) => (p.ai ? p : { ...p, ai: { id: "local-llm" } }));
+    }
+  }
+
   return (
     <div className={"app" + (focusMode ? " focus" : "") + (isMobile ? " mobile" : "")}>
       <header className="app-head">
@@ -1291,6 +1336,12 @@ export default function App() {
           }
         />
       </footer>
+      {localLlmIntroOpen && (
+        <LocalLlmIntroDialog
+          expectedSizeBytes={localLlmExpectedSize}
+          onClose={handleLocalLlmIntroClose}
+        />
+      )}
     </div>
   );
 }

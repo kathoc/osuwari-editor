@@ -2,6 +2,7 @@ import type { Profile } from "../types";
 import { mockAdapter } from "./mockAdapter";
 import { makeOllamaAdapter } from "./ollamaAdapter";
 import { chromeAdapter } from "./chromeAdapter";
+import { localLlmAdapter } from "./localLlmAdapter";
 import type { AIAdapter } from "./types";
 
 export function getAdapter(profile: Profile): AIAdapter {
@@ -14,5 +15,6 @@ export function getAdapter(profile: Profile): AIAdapter {
     });
   }
   if (ai.id === "chrome") return chromeAdapter;
+  if (ai.id === "local-llm") return localLlmAdapter;
   return mockAdapter;
 }

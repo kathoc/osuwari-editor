@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import type { DocumentSettings, EffectiveSettings, Profile, Project, ProjectSummary, StyleRule } from "../lib/types";
 import { STYLE_RULE_LABEL } from "../lib/settings";
+import {
+  getLocalLlmBridge,
+  hasLocalLlmBridge,
+  type LocalLlmProgress,
+  type LocalLlmStatus,
+} from "../lib/ai/localLlm";
 
 interface Props {
   // current file
@@ -213,10 +219,150 @@ export function SettingsPanel(props: Props) {
         </div>
       </div>
 
+      <LocalLlmSection profile={profile} onChangeProfile={onChangeProfile} />
+
       <div className="setpanel-section">
         <div className="setpanel-head">新規プロジェクト</div>
         <NewProjectRow onCreate={onCreateProject} />
       </div>
+    </div>
+  );
+}
+
+function formatBytes(n: number): string {
+  if (!Number.isFinite(n) || n <= 0) return "—";
+  if (n >= 1024 ** 3) return (n / 1024 ** 3).toFixed(2) + " GB";
+  if (n >= 1024 ** 2) return (n / 1024 ** 2).toFixed(0) + " MB";
+  return Math.round(n / 1024) + " KB";
+}
+
+function LocalLlmSection({ profile, onChangeProfile }: { profile: Profile; onChangeProfile: (p: Profile) => void }) {
+  const [status, setStatus] = useState<LocalLlmStatus | null>(null);
+  const [progress, setProgress] = useState<LocalLlmProgress | null>(null);
+
+  useEffect(() => {
+    if (!hasLocalLlmBridge()) return;
+    const bridge = getLocalLlmBridge();
+    if (!bridge) return;
+    let cancelled = false;
+    bridge.status().then((s) => {
+      if (!cancelled) setStatus(s);
+    });
+    const off = bridge.onProgress((p) => {
+      setProgress(p);
+      if (p.status === "done" || p.status === "cancelled" || p.status === "error") {
+        bridge.status().then((s) => setStatus(s));
+        if (p.status === "done") {
+          // 初回導入直後、ユーザーが未選択なら自動でローカルAIに切替
+          onChangeProfile(profile.ai ? profile : { ...profile, ai: { id: "local-llm" } });
+        }
+      }
+    });
+    return () => {
+      cancelled = true;
+      off();
+    };
+    // 依存は profile.ai のみで十分（onChangeProfile/profile丸ごとは循環の元）
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile.ai?.id]);
+
+  if (!hasLocalLlmBridge()) {
+    return null;
+  }
+
+  const installed = !!status?.installed;
+  const downloading = !!status?.downloading || progress?.status === "downloading";
+  const expected = status?.expectedSizeBytes || 0;
+  const pct =
+    progress && progress.total > 0
+      ? Math.min(100, Math.floor((progress.received / progress.total) * 100))
+      : 0;
+
+  async function refresh() {
+    const bridge = getLocalLlmBridge();
+    if (!bridge) return;
+    const s = await bridge.status();
+    setStatus(s);
+  }
+  async function startDl() {
+    const bridge = getLocalLlmBridge();
+    if (!bridge) return;
+    setProgress({ status: "downloading", received: 0, total: expected });
+    const r = await bridge.startDownload();
+    if (!r.ok) setProgress({ status: "error", received: 0, total: expected, error: r.reason || "unknown" });
+    await refresh();
+  }
+  async function cancelDl() {
+    const bridge = getLocalLlmBridge();
+    if (!bridge) return;
+    await bridge.cancelDownload();
+    await refresh();
+  }
+  async function deleteModel() {
+    const bridge = getLocalLlmBridge();
+    if (!bridge) return;
+    if (!confirm("ローカルAIのモデルファイルを削除しますか？")) return;
+    await bridge.deleteModel();
+    await refresh();
+    setProgress(null);
+  }
+
+  const aiId = profile.ai?.id || "mock";
+
+  return (
+    <div className="setpanel-section">
+      <div className="setpanel-head">ローカルAI(オンデバイス)</div>
+      <div className="setpanel-subtle">
+        外部送信せずにデバイス上で動くAIです。容量は約 <b>{formatBytes(expected)}</b> です。
+      </div>
+
+      <div className="setpanel-local-llm-status">
+        状態: {downloading ? "ダウンロード中" : installed ? "導入済み" : "未導入"}
+        {status && installed && !downloading && <> （{formatBytes(status.sizeBytes)}）</>}
+      </div>
+
+      {progress && (
+        <div className="local-llm-progress">
+          <div className="local-llm-progress-bar">
+            <div className="local-llm-progress-fill" style={{ width: pct + "%" }} />
+          </div>
+          <div className="local-llm-progress-meta">
+            {progress.status === "downloading" && (
+              <>
+                {pct}% ({formatBytes(progress.received)} / {formatBytes(progress.total)})
+              </>
+            )}
+            {progress.status === "done" && <>完了しました。</>}
+            {progress.status === "cancelled" && <>中断しました。</>}
+            {progress.status === "error" && <>エラー: {progress.error}</>}
+          </div>
+        </div>
+      )}
+
+      <div className="setpanel-local-llm-row">
+        {downloading ? (
+          <button onClick={cancelDl}>ダウンロードを中止</button>
+        ) : installed ? (
+          <button onClick={deleteModel}>モデルを削除</button>
+        ) : (
+          <button className="primary" onClick={startDl}>ダウンロードする</button>
+        )}
+      </div>
+
+      <label className="setpanel-row" style={{ marginTop: 12 }}>
+        <span>使用するAI</span>
+        <select
+          value={aiId}
+          onChange={(e) => onChangeProfile({ ...profile, ai: { id: e.target.value as NonNullable<Profile["ai"]>["id"] } })}
+        >
+          <option value="mock">Mock</option>
+          <option value="ollama">Ollama</option>
+          <option value="chrome">Chrome (Gemini Nano)</option>
+          <option value="local-llm" disabled={!installed}>
+            ローカルAI(オンデバイス){installed ? "" : "（未導入）"}
+          </option>
+        </select>
+      </label>
     </div>
   );
 }

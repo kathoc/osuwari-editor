@@ -1862,3 +1862,39 @@ body {
 .mdraft-actions button:disabled { opacity: 0.4; cursor: not-allowed; }
 .mdraft-apply { background: #2d6cdf; color: #fff; border: 1px solid #2d6cdf; }
 .mdraft-reject, .mdraft-retry { background: transparent; border: 1px solid var(--border, #2a2a2a); color: inherit; }
+
+/* ローカルAI イントロダイアログ / 設定パネルの進捗 */
+.modal-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+}
+.modal-card {
+  background: var(--panel-bg, #fff);
+  color: inherit;
+  border: 1px solid var(--border, #2a2a2a);
+  border-radius: 8px;
+  width: min(560px, calc(100% - 32px));
+  padding: 20px 22px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+}
+.modal-title { font-size: 16px; font-weight: 600; margin: 0 0 10px; }
+.modal-body { font-size: 13.5px; line-height: 1.7; margin: 0 0 12px; }
+.modal-cautions { font-size: 12.5px; line-height: 1.7; padding-left: 18px; margin: 0 0 14px; }
+.modal-cautions li { margin-bottom: 4px; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.modal-btn { font-size: 13px; padding: 7px 14px; border-radius: 6px; cursor: pointer; border: 1px solid var(--border, #2a2a2a); background: transparent; color: inherit; }
+.modal-btn-primary { background: #2d6cdf; border-color: #2d6cdf; color: #fff; }
+.modal-btn-secondary { background: transparent; }
+.modal-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.local-llm-progress { margin: 6px 0 12px; }
+.local-llm-progress-bar { height: 8px; background: var(--border, #2a2a2a); border-radius: 4px; overflow: hidden; }
+.local-llm-progress-fill { height: 100%; background: #2d6cdf; transition: width 0.2s ease; }
+.local-llm-progress-meta { font-size: 12px; margin-top: 6px; opacity: 0.8; }
+
+.setpanel-local-llm-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.setpanel-local-llm-row button { font-size: 12px; padding: 5px 12px; border-radius: 4px; cursor: pointer; border: 1px solid var(--border, #2a2a2a); background: transparent; color: inherit; }
+.setpanel-local-llm-row button.primary { background: #2d6cdf; border-color: #2d6cdf; color: #fff; }
+.setpanel-local-llm-row button:disabled { opacity: 0.4; cursor: not-allowed; }
+.setpanel-local-llm-status { font-size: 12px; opacity: 0.8; margin-top: 4px; }

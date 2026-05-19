@@ -17,9 +17,11 @@
     "electron:build:server": "node scripts/build-server.mjs",
     "electron:build": "npm run build && npm run electron:build:server",
     "rebuild:native": "electron-builder install-app-deps",
-    "dist:mac": "npm run electron:build && electron-builder --mac"
+    "dist:mac": "npm run electron:build && electron-builder --mac",
+    "dist:win": "npm run electron:build && electron-builder --win"
   },
   "dependencies": {
+    "@electron/llm": "^1.1.1",
     "better-sqlite3": "^11.3.0",
     "cors": "^2.8.5",
     "express": "^4.21.1",
@@ -32,8 +34,8 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/kuromoji": "^0.1.3",
-    "@types/node": "^22.9.0",
-    "@types/react": "^18.3.28",
+    "@types/node": "^22.19.19",
+    "@types/react": "^18.3.29",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^4.7.0",
     "concurrently": "^9.1.0",
@@ -59,7 +61,10 @@
     ],
     "asarUnpack": [
       "node_modules/better-sqlite3/**/*",
-      "node_modules/kuromoji/dict/**/*"
+      "node_modules/kuromoji/dict/**/*",
+      "node_modules/@electron/llm/**/*",
+      "node_modules/node-llama-cpp/**/*",
+      "node_modules/@node-llama-cpp/**/*"
     ],
     "mac": {
       "category": "public.app-category.productivity",
@@ -76,6 +81,20 @@
       "hardenedRuntime": false,
       "gatekeeperAssess": false,
       "identity": null
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "icon/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
     }
   }
 }
